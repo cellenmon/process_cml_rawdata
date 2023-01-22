@@ -8,10 +8,15 @@ import matplotlib.pyplot as plt
 import pickle as pkl
 
 class CmlRawdataProcessor:
-    def __init__(self, raw_data_path, metadata_path, sel_links_path=None):
+    def __init__(self,
+                 raw_data_path,
+                 metadata_path,
+                 create_csv=True,
+                 sel_links_path=None):
         self.raw_data_path = raw_data_path
         self.metadata_path = metadata_path
         self.sel_links_path = sel_links_path
+        self.create_csv = create_csv
 
         for i in range(1000):
             temp_str = 'output_' + str(i)
@@ -158,38 +163,49 @@ class CmlRawdataProcessor:
             tsl_temp_sites = sorted(tsl['Measuring_site'].unique())
 
             if (rsl_temp_sites==tsl_temp_sites) & (len(tsl_temp_sites)==2):
+                down_link = tsl_temp_sites[0] + '-' + rsl_temp_sites[1]
+                up_link = tsl_temp_sites[1] + '-' + rsl_temp_sites[0]
                 ##Rx up
                 self.RD_rx['Link_number'] = np.where(
                     (self.RD_rx['Hop_number'] == hop) &
                     (self.RD_rx['Measuring_site'] == rsl_temp_sites[0]),
-                    tsl_temp_sites[1] + '-' + rsl_temp_sites[0],
+                    up_link,
                     self.RD_rx['Link_number']
                 )
                 ##Rx down
                 self.RD_rx['Link_number'] = np.where(
                     (self.RD_rx['Hop_number'] == hop) &
                     (self.RD_rx['Measuring_site'] == rsl_temp_sites[1]),
-                    tsl_temp_sites[0] + '-' + rsl_temp_sites[1],
+                    down_link,
                     self.RD_rx['Link_number']
                 )
                 ## Tx up
                 self.RD_tx['Link_number'] = np.where(
                     (self.RD_tx['Hop_number'] == hop) &
                     (self.RD_tx['Measuring_site'] == tsl_temp_sites[1]),
-                    tsl_temp_sites[1] + '-' + rsl_temp_sites[0],
+                    up_link,
                     self.RD_tx['Link_number']
                 )
                 ## Tx down
                 self.RD_tx['Link_number'] = np.where(
                     (self.RD_tx['Hop_number'] == hop) &
                     (self.RD_tx['Measuring_site'] == tsl_temp_sites[0]),
-                    tsl_temp_sites[0] + '-' + rsl_temp_sites[1],
+                    down_link,
                     self.RD_tx['Link_number']
                 )
 
-        self.RD_rx.to_csv(self.out_path.joinpath('rd_rx.csv'))
-        self.RD_tx.to_csv(self.out_path.joinpath('rd_tx.csv'))
+                if up_link in MD['link_id']:
+                    print('Link %s is in line %i in the metadata file' %(up_link,9999))
+                if down_link in MD['link_id']:
+                    print('Link %s is in line %i in the metadata file' %(down_link,9999))
+            else:
+                hops_to_drop.append(hop)
 
+        self.RD_tx = self.RD_tx[~self.RD_tx['Hop_number'].isin(hops_to_drop)]
+        self.RD_rx = self.RD_rx[~self.RD_rx['Hop_number'].isin(hops_to_drop)]
+        if self.create_csv:
+            self.RD_rx.to_csv(self.out_path.joinpath('rd_rx.csv'))
+            self.RD_tx.to_csv(self.out_path.joinpath('rd_tx.csv'))
 
 if __name__ == "__main__":
     raw_data_path = Path.joinpath(Path.cwd(), 'raw')
@@ -199,7 +215,7 @@ if __name__ == "__main__":
     sel_links_path = Path(
         '/Users/adameshel/Documents/Python_scripts/process_cml_rawdata/selected_links.txt'
     )
-    crp = CmlRawdataProcessor(raw_data_path,metadata_path)
+    crp = CmlRawdataProcessor(raw_data_path,metadata_path,create_csv=True)
     crp.execute()
     print('All outputs were generated in:')
     print(str(crp.out_path))
