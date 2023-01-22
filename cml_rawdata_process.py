@@ -203,16 +203,3 @@ if __name__ == "__main__":
     crp.execute()
     print('All outputs were generated in:')
     print(str(crp.out_path))
-
-    # # set up all the data (all the links metadata, etc.)
-    # links_path = '/Volumes/0543970348/IE_directory/aviv/aviv_links.csv'
-    # links = pd.read_csv(links_path)
-    # output_folder = '/Volumes/0543970348/IE_directory/aviv/test/'  # directory for all output files
-    # output_filename = 'sim_out'  # output file name
-    # f = open(output_folder + "/list_of_runParam.txt", "w+")
-    # f.close
-    #
-    # MS = ManualSim(links, output_folder, links_path, map_res=0.003, quantization=0.0)
-    #
-    # # run the simulation
-    # MS.activate_sim(output_folder + output_filename)
