@@ -13,6 +13,7 @@ class CmlRawdataProcessor:
                  metadata_path,
                  create_csv=True,
                  sel_links_path=None):
+
         self.raw_data_path = raw_data_path
         self.metadata_path = metadata_path
         self.sel_links_path = sel_links_path
@@ -75,8 +76,15 @@ class CmlRawdataProcessor:
         df['Link_num'] = df['Link_num'].str.partition('-')[0]
         return df
 
-    def execute(self):
-        self.metadata_path
+    def check_link_metadata_availability(self):
+        links_in_rd = self.RD_rx['Link_number'].unique()
+        links_in_md = self.df_metadata['link_id'].unique()
+        for l,link in enumerate(links_in_rd):
+            ## The 999 should be changed to the index in the metadata
+            if link in links_in_md:
+                print('Link %s is in line %i in the metadata file' % (link, 9999))
+
+    def metadata_processor(self):
         # process all the metadata
         col_names = ['SP', 'Link_num', 'Status', 'Frequency1',
                      'Frequency2', 'Polarization', 'Length_KM',
@@ -100,7 +108,11 @@ class CmlRawdataProcessor:
 
         MD.loc[:, 'Height_above_sea1'] = pd.to_numeric(MD.loc[:, 'Height_above_sea1'], errors='coerce')
         MD.loc[:, 'Height_above_sea2'] = pd.to_numeric(MD.loc[:, 'Height_above_sea2'], errors='coerce')
+        self.df_metadata = MD
+        if self.create_csv:
+            self.df_metadata.to_csv(self.out_path.joinpath('metadata.csv'))
 
+    def rawdata_processor(self):
         # select raw-data files to open
         only_files = sorted([f for f in listdir(self.raw_data_path) if '.txt' in f])
 
@@ -116,7 +128,7 @@ class CmlRawdataProcessor:
         self.RD_rx = []  # gather all RADIO_SINK
         self.RD_tx = []  # gather all RADIO_SOURCE
 
-        for rdfile in only_files[0:2]:
+        for rdfile in only_files:
             rdfile = str(self.raw_data_path.joinpath(rdfile))
             RD = pd.read_csv(rdfile, index_col=False)
             RD.insert(6, 'Site', '')
@@ -150,19 +162,18 @@ class CmlRawdataProcessor:
 
         hops = []
         hops.append(self.RD_tx['Hop_number'].unique())
-        hops = list(hops[0])
-        print(hops)
-
+        self.hops = list(hops[0])
+        # print(hops)
         self.RD_rx['Link_number'] = '-'
         self.RD_tx['Link_number'] = '-'
         hops_to_drop = []
-        for h, hop in enumerate(hops):
+        for h, hop in enumerate(self.hops):
             rsl = self.RD_rx[self.RD_rx['Hop_number'] == hop]
             rsl_temp_sites = sorted(rsl['Measuring_site'].unique())
             tsl = self.RD_tx[self.RD_tx['Hop_number'] == hop]
             tsl_temp_sites = sorted(tsl['Measuring_site'].unique())
 
-            if (rsl_temp_sites==tsl_temp_sites) & (len(tsl_temp_sites)==2):
+            if (rsl_temp_sites == tsl_temp_sites) & (len(tsl_temp_sites) == 2):
                 down_link = tsl_temp_sites[0] + '-' + rsl_temp_sites[1]
                 up_link = tsl_temp_sites[1] + '-' + rsl_temp_sites[0]
                 ##Rx up
@@ -193,29 +204,47 @@ class CmlRawdataProcessor:
                     down_link,
                     self.RD_tx['Link_number']
                 )
-
-                if up_link in MD['link_id']:
-                    print('Link %s is in line %i in the metadata file' %(up_link,9999))
-                if down_link in MD['link_id']:
-                    print('Link %s is in line %i in the metadata file' %(down_link,9999))
             else:
                 hops_to_drop.append(hop)
 
         self.RD_tx = self.RD_tx[~self.RD_tx['Hop_number'].isin(hops_to_drop)]
         self.RD_rx = self.RD_rx[~self.RD_rx['Hop_number'].isin(hops_to_drop)]
+
+        ## Export rawdata to csv
         if self.create_csv:
             self.RD_rx.to_csv(self.out_path.joinpath('rd_rx.csv'))
             self.RD_tx.to_csv(self.out_path.joinpath('rd_tx.csv'))
+
+    def execute(self,
+                process_rawdata=True,
+                process_metadata=True,
+                check_availability=True):
+        self.process_metadata = process_metadata
+        self.process_rawdata = process_rawdata
+
+        if self.process_metadata:
+            self.metadata_processor()
+
+        if self.process_rawdata:
+            self.rawdata_processor()
+
+        if check_availability:
+            self.check_link_metadata_availability()
+
+        print('All outputs were generated in:')
+        print(str(self.out_path))
+        ## create attenuation csv
+        # df_atten =
+
 
 if __name__ == "__main__":
     raw_data_path = Path.joinpath(Path.cwd(), 'raw')
     metadata_path = Path.joinpath(Path.cwd(), 'metadata').joinpath(
         'New_Celltable_final_converted.xls'
     )
+    ## a list of pre-selected links ["site1-site2", ...] (optional)
     sel_links_path = Path(
         '/Users/adameshel/Documents/Python_scripts/process_cml_rawdata/selected_links.txt'
     )
     crp = CmlRawdataProcessor(raw_data_path,metadata_path,create_csv=True)
     crp.execute()
-    print('All outputs were generated in:')
-    print(str(crp.out_path))
