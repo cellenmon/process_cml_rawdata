@@ -5,7 +5,7 @@ from pathlib import Path
 from os import listdir
 from os.path import isfile, join, exists
 import matplotlib.pyplot as plt
-import pickle as pkl
+# import pickle as pkl
 
 class CmlRawdataProcessor:
     def __init__(self,
@@ -77,7 +77,7 @@ class CmlRawdataProcessor:
         return df
 
     def check_link_metadata_availability(self):
-        links_in_rd = self.RD_rx['Link_number'].unique()
+        links_in_rd = self.RD_rx['link_id'].unique()
         links_in_md = self.df_metadata['link_id'].unique()
         f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "a")
         f.close()
@@ -169,8 +169,8 @@ class CmlRawdataProcessor:
         hops.append(self.RD_tx['Hop_number'].unique())
         self.hops = list(hops[0])
         # print(hops)
-        self.RD_rx['Link_number'] = '-'
-        self.RD_tx['Link_number'] = '-'
+        self.RD_rx['link_id'] = '-'
+        self.RD_tx['link_id'] = '-'
         hops_to_drop = []
         for h, hop in enumerate(self.hops):
             rsl = self.RD_rx[self.RD_rx['Hop_number'] == hop]
@@ -182,32 +182,32 @@ class CmlRawdataProcessor:
                 down_link = tsl_temp_sites[0] + '-' + rsl_temp_sites[1]
                 up_link = tsl_temp_sites[1] + '-' + rsl_temp_sites[0]
                 ##Rx up
-                self.RD_rx['Link_number'] = np.where(
+                self.RD_rx['link_id'] = np.where(
                     (self.RD_rx['Hop_number'] == hop) &
                     (self.RD_rx['Measuring_site'] == rsl_temp_sites[0]),
                     up_link,
-                    self.RD_rx['Link_number']
+                    self.RD_rx['link_id']
                 )
                 ##Rx down
-                self.RD_rx['Link_number'] = np.where(
+                self.RD_rx['link_id'] = np.where(
                     (self.RD_rx['Hop_number'] == hop) &
                     (self.RD_rx['Measuring_site'] == rsl_temp_sites[1]),
                     down_link,
-                    self.RD_rx['Link_number']
+                    self.RD_rx['link_id']
                 )
                 ## Tx up
-                self.RD_tx['Link_number'] = np.where(
+                self.RD_tx['link_id'] = np.where(
                     (self.RD_tx['Hop_number'] == hop) &
                     (self.RD_tx['Measuring_site'] == tsl_temp_sites[1]),
                     up_link,
-                    self.RD_tx['Link_number']
+                    self.RD_tx['link_id']
                 )
                 ## Tx down
-                self.RD_tx['Link_number'] = np.where(
+                self.RD_tx['link_id'] = np.where(
                     (self.RD_tx['Hop_number'] == hop) &
                     (self.RD_tx['Measuring_site'] == tsl_temp_sites[0]),
                     down_link,
-                    self.RD_tx['Link_number']
+                    self.RD_tx['link_id']
                 )
             else:
                 hops_to_drop.append(hop)
