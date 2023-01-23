@@ -4,11 +4,12 @@ import os
 
 raw_data_path = Path.joinpath(Path.cwd(), 'raw')
 metadata_path = Path.joinpath(Path.cwd(), 'metadata')
-print(metadata_path)
 meta_files_list = sorted([f for f in os.listdir(metadata_path) if '.xls' in f])
 print(meta_files_list)
-for f,file_path in enumerate(meta_files_list):
-    raw_crp = crp.CmlRawdataProcessor(raw_data_path,Path(file_path))
+for f,file in enumerate(meta_files_list):
+    raw_crp = crp.CmlRawdataProcessor(raw_data_path,
+                                      metadata_path.joinpath(file)
+                                      )
     raw_crp.execute()
 
 
