@@ -79,10 +79,15 @@ class CmlRawdataProcessor:
     def check_link_metadata_availability(self):
         links_in_rd = self.RD_rx['Link_number'].unique()
         links_in_md = self.df_metadata['link_id'].unique()
+        f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "a")
+        f.close()
         for l,link in enumerate(links_in_rd):
             ## The 999 should be changed to the index in the metadata
             if link in links_in_md:
                 print('Link %s is in line %i in the metadata file' % (link, 9999))
+                f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "w")
+                f.write("Trying to write something:" + "\r\n")
+                f.close()
 
     def metadata_processor(self):
         # process all the metadata
