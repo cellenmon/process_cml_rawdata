@@ -69,8 +69,6 @@ class CmlRawdataProcessor:
         # df['link_id'] = df['link_id'].str.lower()
         df.insert(15, 'SLOTS', '')
         df.insert(0, 'SP', 'cellcom')
-        print(len(col_names))
-        print(len(df.columns))
         df.columns = col_names
 
         # convert EAST/NORTH to LAT/LON decimal
@@ -93,14 +91,21 @@ class CmlRawdataProcessor:
     def check_link_metadata_availability(self):
         links_in_rd = self.RD_rx['link_id'].unique()
         links_in_md = self.df_metadata['link_id'].unique()
-        f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "a")
-        f.close()
+        f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "w")
+        f.write("link_id_rawdata,metadata_index,metadata_file_name" + "\r\n")
         for l,link in enumerate(links_in_rd):
             ## The 9999 should be changed to the index in the metadata
             if link in links_in_md:
-                # print('Link %s is in line %i in the metadata file' % (link, 9999))
-                temp_idx = self.df_metadata[self.df_metadata['link_id']==link].index.values.astype(int)[0]
-                print('Link %s is in line %i in the metadata file' % (link, temp_idx))
+                temp_idx = self.df_metadata[self.df_metadata['link_id']==link].\
+                    index.values.astype(int)[0]
+                print('Link %s is in line %i in %s' % (link,
+                                                       temp_idx,
+                                                       self.metadata_path.name)
+                      )
+                # with open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), 'w+') as f:
+                #     f.write(link)
+                f.write("%s,%i,%s\r\n" %(link,temp_idx,self.metadata_path.name))
+        f.close()
                 # f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "w")
                 # f.write("Trying to write something:" + "\r\n")
                 # f.close()
@@ -184,7 +189,6 @@ class CmlRawdataProcessor:
         hops = []
         hops.append(self.RD_tx['Hop_number'].unique())
         self.hops = list(hops[0])
-        # print(hops)
         self.RD_rx['link_id'] = '-'
         self.RD_tx['link_id'] = '-'
         hops_to_drop = []
