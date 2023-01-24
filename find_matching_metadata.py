@@ -11,12 +11,3 @@ for f,file in enumerate(meta_files_list):
                                       metadata_path.joinpath(file)
                                       )
     raw_crp.execute()
-
-
-# ## a list of pre-selected links ["site1-site2", ...] (optional)
-# sel_links_path = Path(
-#     '/Users/adameshel/Documents/Python_scripts/process_cml_rawdata/selected_links.txt'
-# )
-# crp = CmlRawdataProcessor(raw_data_path, metadata_path, create_csv=True)
-# crp.execute()
-

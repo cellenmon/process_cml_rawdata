@@ -13,6 +13,16 @@ class CmlRawdataProcessor:
                  metadata_path,
                  create_csv=True,
                  sel_links_path=None):
+        """
+        A class for processing raw-data and metadata, and combining them.
+        At the moment it is working for Cellcom.
+        :param raw_data_path: Path to the raw-data.
+        :param metadata_path: Path to the metadata.
+        :param create_csv: Bool. if `True` csv files will be dropped in a newly
+        generated directory.
+        :param sel_links_path: A path to a txt file with link names (if known
+        in advance)
+        """
 
         self.raw_data_path = raw_data_path
         self.metadata_path = metadata_path
@@ -59,11 +69,6 @@ class CmlRawdataProcessor:
                 'LENGTH_KM', 'SITE1_NAME', 'ID_SITE1', 'EAST1', 'NORTH1',
                 'HEIGHT_ABOVE_SEA1_M', 'SITE2_NAME', 'ID_SITE2', 'EAST2',
                 'NORTH2', 'HEIGHT_ABOVE_SEA2_M']
-        # col_n= ['SP', 'Status', 'Frequency1',
-        #              'Frequency2', 'Polarization', 'Length_KM',
-        #              'SITE1_Name', 'SITE1_ID', 'LON1', 'LAT1',
-        #              'Height_above_sea1', 'SITE2_Name', 'SITE2_ID',
-        #              'LON2', 'LAT2', 'Height_above_sea2', 'SLOTS']
         df = df[cols]
         # df['link_id'] = '-' #df['ID_SITE1'] + '-' + df['ID_SITE2']
         # df['link_id'] = df['link_id'].str.lower()
@@ -89,26 +94,46 @@ class CmlRawdataProcessor:
         return df
 
     def check_link_metadata_availability(self):
+        """
+        A function for initiating the connection between raw and metadata.
+        :return: Drops 2 files into the output directory-
+            1. A txt file with raw links and their locations in the metadata
+            2. A csv metadata file which contains only the relevant links
+            which have rawdata
+        """
         links_in_rd = self.RD_rx['link_id'].unique()
         links_in_md = self.df_metadata['link_id'].unique()
+        self.links_with_metadata = []
+        idxs_metadata_with_rawdata = []
         f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "w")
         f.write("link_id_rawdata,metadata_index,metadata_file_name" + "\r\n")
         for l,link in enumerate(links_in_rd):
-            ## The 9999 should be changed to the index in the metadata
             if link in links_in_md:
+                self.links_with_metadata.append(link)
                 temp_idx = self.df_metadata[self.df_metadata['link_id']==link].\
                     index.values.astype(int)[0]
+                idxs_metadata_with_rawdata.append(temp_idx)
                 print('Link %s is in line %i in %s' % (link,
                                                        temp_idx,
                                                        self.metadata_path.name)
                       )
-                # with open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), 'w+') as f:
-                #     f.write(link)
                 f.write("%s,%i,%s\r\n" %(link,temp_idx,self.metadata_path.name))
         f.close()
-                # f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "w")
-                # f.write("Trying to write something:" + "\r\n")
-                # f.close()
+
+        self.df_metadata_relevant = self.df_metadata.iloc[idxs_metadata_with_rawdata]
+        cols = ['SP','link_id','Frequency1','Frequency2','Length_KM','LON1','LAT1','LON2','LAT2']
+        self.df_metadata_relevant = self.df_metadata_relevant[cols]
+        self.df_metadata_relevant.reset_index(drop=True, inplace=True)
+        ## change to names which are compatible with draw_cmls_on_folium_map and Omnisol
+        new_col_names = ['carrier', 'link_id', 'frequency_1', 'frequency_2', 'length_mk',
+                         'tx_site_longitude', 'tx_site_latitude', 'rx_site_longitude',
+                         'rx_site_latitude']
+        self.df_metadata_relevant.columns = [new_col_names]
+        if self.create_csv:
+            self.df_metadata_relevant.to_csv(
+                self.out_path.joinpath('metadata_relevant.csv'),
+                index=False
+            )
 
     def metadata_processor(self):
         # process all the metadata
@@ -244,6 +269,16 @@ class CmlRawdataProcessor:
                 process_rawdata=True,
                 process_metadata=True,
                 check_availability=True):
+        """
+        Execute the class.
+        :param process_rawdata: Bool. If 'True' the class will process the
+        rawdata.
+        :param process_metadata: Bool. If 'True' the class will process the
+        metadata.
+        :param check_availability: Bool. If 'True' the class will make the
+        connection between the raw and metadata.
+        :return:
+        """
         self.process_metadata = process_metadata
         self.process_rawdata = process_rawdata
 
@@ -260,7 +295,6 @@ class CmlRawdataProcessor:
         print(str(self.out_path))
         ## create attenuation csv
         # df_atten =
-
 
 if __name__ == "__main__":
     raw_data_path = Path.joinpath(Path.cwd(), 'raw')
