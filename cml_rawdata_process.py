@@ -37,7 +37,12 @@ class CmlRawdataProcessor:
         elif len(site_id.strip('.0123456789;')) == 0:
             return np.nan
         elif '; ' in site_id:
-            return site_id.split('; ')[1]
+            site_id0 = site_id.split('; ')[0]
+            site_id1 = site_id.split('; ')[1]
+            if '.' in site_id0:
+                return site_id1
+            else:
+                return site_id0
         else:
             return site_id[0:4]
 
@@ -50,15 +55,22 @@ class CmlRawdataProcessor:
             df = pd.read_excel(xlfile)
         else:
             df = pd.read_csv(xlfile)
-        cols = ['LINK_NO', 'STATUS', 'TX_FREQ_HIGH_MHZ', 'TX_FREQ_LOW_MHZ', 'POL',
+        cols = ['STATUS', 'TX_FREQ_HIGH_MHZ', 'TX_FREQ_LOW_MHZ', 'POL',
                 'LENGTH_KM', 'SITE1_NAME', 'ID_SITE1', 'EAST1', 'NORTH1',
                 'HEIGHT_ABOVE_SEA1_M', 'SITE2_NAME', 'ID_SITE2', 'EAST2',
                 'NORTH2', 'HEIGHT_ABOVE_SEA2_M']
+        # col_n= ['SP', 'Status', 'Frequency1',
+        #              'Frequency2', 'Polarization', 'Length_KM',
+        #              'SITE1_Name', 'SITE1_ID', 'LON1', 'LAT1',
+        #              'Height_above_sea1', 'SITE2_Name', 'SITE2_ID',
+        #              'LON2', 'LAT2', 'Height_above_sea2', 'SLOTS']
         df = df[cols]
-        df['link_id'] = df['ID_SITE1'] + '-' + df['ID_SITE2']
-        df['link_id'] = df['link_id'].str.lower()
-        df.insert(16, 'SLOTS', '')
+        # df['link_id'] = '-' #df['ID_SITE1'] + '-' + df['ID_SITE2']
+        # df['link_id'] = df['link_id'].str.lower()
+        df.insert(15, 'SLOTS', '')
         df.insert(0, 'SP', 'cellcom')
+        print(len(col_names))
+        print(len(df.columns))
         df.columns = col_names
 
         # convert EAST/NORTH to LAT/LON decimal
@@ -71,9 +83,11 @@ class CmlRawdataProcessor:
         # process cellcom ids to fix problems
         df['SITE1_ID'] = df['SITE1_ID'].apply(self.cellcom_ids)
         df['SITE2_ID'] = df['SITE2_ID'].apply(self.cellcom_ids)
+        df['link_id'] = df['SITE1_ID'] + '-' + df['SITE2_ID']
+        df['link_id'] = df['link_id'].str.lower()
 
         # remove '-X' from cml_id
-        df['Link_num'] = df['Link_num'].str.partition('-')[0]
+        # df['Link_num'] = df['Link_num'].str.partition('-')[0]
         return df
 
     def check_link_metadata_availability(self):
@@ -82,20 +96,22 @@ class CmlRawdataProcessor:
         f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "a")
         f.close()
         for l,link in enumerate(links_in_rd):
-            ## The 999 should be changed to the index in the metadata
+            ## The 9999 should be changed to the index in the metadata
             if link in links_in_md:
-                print('Link %s is in line %i in the metadata file' % (link, 9999))
-                f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "w")
-                f.write("Trying to write something:" + "\r\n")
-                f.close()
+                # print('Link %s is in line %i in the metadata file' % (link, 9999))
+                temp_idx = self.df_metadata[self.df_metadata['link_id']==link].index.values.astype(int)[0]
+                print('Link %s is in line %i in the metadata file' % (link, temp_idx))
+                # f = open(self.out_path.joinpath('metadata_rawdata_matching_links.txt'), "w")
+                # f.write("Trying to write something:" + "\r\n")
+                # f.close()
 
     def metadata_processor(self):
         # process all the metadata
-        col_names = ['SP', 'Link_num', 'Status', 'Frequency1',
+        col_names = ['SP', 'Status', 'Frequency1',
                      'Frequency2', 'Polarization', 'Length_KM',
                      'SITE1_Name', 'SITE1_ID', 'LON1', 'LAT1',
                      'Height_above_sea1', 'SITE2_Name', 'SITE2_ID',
-                     'LON2', 'LAT2', 'Height_above_sea2', 'SLOTS', 'link_id']
+                     'LON2', 'LAT2', 'Height_above_sea2', 'SLOTS']
         MD = self.process_cellcom(str(self.metadata_path), col_names)
 
         # convert object to numeric values with additional processing
