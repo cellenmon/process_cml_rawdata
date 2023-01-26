@@ -29,16 +29,6 @@ class CmlRawdataProcessor:
         self.sel_links_path = sel_links_path
         self.create_csv = create_csv
 
-        for i in range(1000):
-            temp_str = 'output_' + str(i)
-            out_path = Path.joinpath(Path.cwd(),temp_str)
-            if not Path(out_path).is_dir():
-                Path.mkdir(out_path)
-                self.out_path = out_path
-                break
-            if i==999:
-                raise Exception("You seem to have too many output directories...")
-
     def cellcom_ids(self, site_id):
         ''' remove IP numbers from cellcom site_a_id/site_b_id,
         and also convert all letters to lower case'''
@@ -281,6 +271,16 @@ class CmlRawdataProcessor:
         """
         self.process_metadata = process_metadata
         self.process_rawdata = process_rawdata
+
+        for i in range(1000):
+            temp_str = 'output_' + str(i)
+            out_path = Path.joinpath(Path.cwd(),temp_str)
+            if not Path(out_path).is_dir():
+                Path.mkdir(out_path)
+                self.out_path = out_path
+                break
+            if i==999:
+                raise Exception("You seem to have too many output directories...")
 
         if self.process_metadata:
             self.metadata_processor()
